@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os"
 	"os/exec"
 	"strings"
@@ -14,9 +15,9 @@ import (
 
 // Check proxy settings: gather env vars, git proxy, GNOME proxy (gsettings) and /etc/environment.
 // Streams lines into m.ProxyLog and prepends a short summary on completion.
-func updateProxy(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateProxy(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.ProxyChan == nil {
 			m.ProxyChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -84,7 +85,7 @@ func updateProxy(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.ProxyChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll proxy channel
@@ -106,9 +107,9 @@ func updateProxy(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.ProxyLog = append(m.ProxyLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -128,19 +129,19 @@ func summarizeProxy(lines []string) string {
 	return ""
 }
 
-func chosenProxyView(m model) string {
-	header := keywordStyle.Render("Proxy settings:") + " environment / git / desktop\n\n"
+func ChosenProxyView(m Model) string {
+	header := utils.KeywordStyle.Render("Proxy settings:") + " environment / git / desktop\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("probing proxy settings...")
+		body := utils.SubtleStyle.Render("probing proxy settings...")
 		if len(m.ProxyLog) > 0 {
 			body = strings.Join(m.ProxyLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.ProxyLog) == 0 {
-		return header + subtleStyle.Render("No proxy settings detected.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No proxy settings detected.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.ProxyLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.ProxyLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

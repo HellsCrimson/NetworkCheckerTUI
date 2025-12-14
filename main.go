@@ -11,135 +11,118 @@ import (
 	"os"
 	"time"
 
+	"network-check/utils"
+
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
-const (
-	progressBarWidth  = 71
-	progressFullChar  = "█"
-	progressEmptyChar = "░"
-	dotChar           = " • "
-)
-
-// General stuff for styling the view
 var (
-	keywordStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("211"))
-	subtleStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	checkboxStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
-	progressEmpty = subtleStyle.Render(progressEmptyChar)
-	dotStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("236")).Render(dotChar)
-	mainStyle     = lipgloss.NewStyle().MarginLeft(2)
-
-	// Gradient colors we'll use for the progress bar
-	ramp = makeRampStyles("#B14FFF", "#00FFA3", progressBarWidth)
-
 	loggingFile *os.File
 )
 
 func main() {
 	// initialize with field names so struct changes are safe
-	initialModel := model{
+	initialModel := Model{
 		AvailableChoices: []AvailableChoice{
 			{
 				Name:       "Full network check",
-				UpdateFunc: updateFullNetwork,
-				ViewFunc:   chosenFullNetworkView,
+				UpdateFunc: UpdateFullNetwork,
+				ViewFunc:   ChosenFullNetworkView,
 			},
 			{
 				Name:       "Check IP",
-				UpdateFunc: updateIPRouting,
-				ViewFunc:   chosenIPRoutingView,
+				UpdateFunc: UpdateIPRouting,
+				ViewFunc:   ChosenIPRoutingView,
 			},
 			{
 				Name:       "Check DNS",
-				UpdateFunc: updateDNS,
-				ViewFunc:   chosenDNSView,
+				UpdateFunc: UpdateDNS,
+				ViewFunc:   ChosenDNSView,
 			},
 			{
 				Name:       "Check MTU",
-				UpdateFunc: updateMTU,
-				ViewFunc:   chosenMTUView,
+				UpdateFunc: UpdateMTU,
+				ViewFunc:   ChosenMTUView,
 			},
 			{
 				Name:       "Frame analyzer",
-				UpdateFunc: updateFrameAnalyzer,
-				ViewFunc:   chosenFrameAnalyzerView,
+				UpdateFunc: UpdateFrameAnalyzer,
+				ViewFunc:   ChosenFrameAnalyzerView,
 			},
 			{
 				Name:       "Check DHCP",
-				UpdateFunc: updateDHCP,
-				ViewFunc:   chosenDHCPView,
+				UpdateFunc: UpdateDHCP,
+				ViewFunc:   ChosenDHCPView,
 			},
 			{
 				Name:       "Check ARP tables",
-				UpdateFunc: updateARP,
-				ViewFunc:   chosenARPView,
+				UpdateFunc: UpdateARP,
+				ViewFunc:   ChosenARPView,
 			},
 			{
 				Name:       "Check routing tables",
-				UpdateFunc: updateRouting,
-				ViewFunc:   chosenRoutingView,
+				UpdateFunc: UpdateRouting,
+				ViewFunc:   ChosenRoutingView,
 			},
 			{
 				Name:       "Check firewall rules",
-				UpdateFunc: updateFirewall,
-				ViewFunc:   chosenFirewallView,
+				UpdateFunc: UpdateFirewall,
+				ViewFunc:   ChosenFirewallView,
 			},
 			{
 				Name:       "Check open ports",
-				UpdateFunc: updateOpenPorts,
-				ViewFunc:   chosenOpenPortsView,
+				UpdateFunc: UpdateOpenPorts,
+				ViewFunc:   ChosenOpenPortsView,
 			},
 			{
 				Name:       "Check traceroute",
-				UpdateFunc: updateTraceroute,
-				ViewFunc:   chosenTracerouteView,
+				UpdateFunc: UpdateTraceroute,
+				ViewFunc:   ChosenTracerouteView,
 			},
 			{
 				Name:       "Check bandwidth",
-				UpdateFunc: updateBandwidth,
-				ViewFunc:   chosenBandwidthView,
+				UpdateFunc: UpdateBandwidth,
+				ViewFunc:   ChosenBandwidthView,
 			},
 			{
 				Name:       "Check latency",
-				UpdateFunc: updateLatency,
-				ViewFunc:   chosenLatencyView,
+				UpdateFunc: UpdateLatency,
+				ViewFunc:   ChosenLatencyView,
 			},
 			{
 				Name:       "Check packet loss",
-				UpdateFunc: updatePacketLoss,
-				ViewFunc:   chosenPacketLossView,
+				UpdateFunc: UpdatePacketLoss,
+				ViewFunc:   ChosenPacketLossView,
 			},
 			{
 				Name:       "Check VPN status",
-				UpdateFunc: updateVPN,
-				ViewFunc:   chosenVPNView,
+				UpdateFunc: UpdateVPN,
+				ViewFunc:   ChosenVPNView,
 			},
 			{
 				Name:       "Check Wi-Fi signal",
-				UpdateFunc: updateWiFi,
-				ViewFunc:   chosenWiFiView,
+				UpdateFunc: UpdateWiFi,
+				ViewFunc:   ChosenWiFiView,
 			},
 			{
 				Name:       "Check network interfaces",
-				UpdateFunc: updateNetworkInterfaces,
-				ViewFunc:   chosenNetworkInterfacesView,
+				UpdateFunc: UpdateNetworkInterfaces,
+				ViewFunc:   ChosenNetworkInterfacesView,
 			},
 			{
 				Name:       "Check proxy settings",
-				UpdateFunc: updateProxy,
-				ViewFunc:   chosenProxyView,
+				UpdateFunc: UpdateProxy,
+				ViewFunc:   ChosenProxyView,
 			},
 			{
 				Name:       "Check NAT configuration",
-				UpdateFunc: updateNAT,
-				ViewFunc:   chosenNATView,
+				UpdateFunc: UpdateNAT,
+				ViewFunc:   ChosenNATView,
 			},
 			{
 				Name:       "Check QoS settings",
-				UpdateFunc: updateQoS,
-				ViewFunc:   chosenQoSView,
+				UpdateFunc: UpdateQoS,
+				ViewFunc:   ChosenQoSView,
 			},
 		},
 		Choice:           0,
@@ -243,26 +226,26 @@ func main() {
 
 type (
 	tickMsg  struct{}
-	frameMsg struct{}
+	FrameMsg struct{}
 )
 
-func tick() tea.Cmd {
+func Tick() tea.Cmd {
 	return tea.Tick(time.Second, func(time.Time) tea.Msg {
 		return tickMsg{}
 	})
 }
 
-func frame() tea.Cmd {
+func Frame() tea.Cmd {
 	return tea.Tick(time.Second/60, func(time.Time) tea.Msg {
-		return frameMsg{}
+		return FrameMsg{}
 	})
 }
 
-func (m model) Init() tea.Cmd {
-	return tick()
+func (m Model) Init() tea.Cmd {
+	return Tick()
 }
 
-type model struct {
+type Model struct {
 	AvailableChoices []AvailableChoice
 	Choice           int
 	Chosen           bool
@@ -279,21 +262,21 @@ type model struct {
 	PingTotal        int
 	PingCount        int
 	PingSuccessCount int
-	PingChan         chan pingResult
+	PingChan         chan PingResult
 	PingLog          []string // collect per-ping results
 
 	// mtu-specific fields
 	MTUTargets      []int
 	MTUIndex        int
 	MTUSuccessCount int
-	MTUChan         chan mtuResult
+	MTUChan         chan MtuResult
 	MTULog          []string // collect per-mtu results
 
 	// dns-specific fields
 	DNSTargets      []string
 	DNSIndex        int
 	DNSSuccessCount int
-	DNSChan         chan dnsResult
+	DNSChan         chan DnsResult
 	DNSLog          []string
 
 	// full-check orchestration
@@ -368,49 +351,49 @@ type model struct {
 
 type AvailableChoice struct {
 	Name       string
-	UpdateFunc func(tea.Msg, model) (tea.Model, tea.Cmd)
-	ViewFunc   func(model) string
+	UpdateFunc func(tea.Msg, Model) (tea.Model, tea.Cmd)
+	ViewFunc   func(Model) string
 }
 
-type pingResult struct {
+type PingResult struct {
 	Index   int
 	Success bool
 	Done    bool
 }
 
-type mtuResult struct {
+type MtuResult struct {
 	Size    int
 	Success bool
 	Done    bool
 }
 
-type dnsResult struct {
+type DnsResult struct {
 	Name    string
 	Addrs   []string
 	Success bool
 	Done    bool
 }
 
-func choicesView(m model) string {
+func choicesView(m Model) string {
 	c := m.Choice
 
 	tpl := "What to do today?\n\n"
 	tpl += "%s\n\n"
-	tpl += subtleStyle.Render("j/k, up/down: select") + dotStyle +
-		subtleStyle.Render("enter: choose") + dotStyle +
-		subtleStyle.Render("q, esc: quit") + dotStyle +
-		subtleStyle.Render(fmt.Sprintf("v: toggle logging (%s)", map[bool]string{true: "on", false: "off"}[m.Logging]))
+	tpl += utils.SubtleStyle.Render("j/k, up/down: select") + utils.DotStyle +
+		utils.SubtleStyle.Render("enter: choose") + utils.DotStyle +
+		utils.SubtleStyle.Render("q, esc: quit") + utils.DotStyle +
+		utils.SubtleStyle.Render(fmt.Sprintf("v: toggle logging (%s)", map[bool]string{true: "on", false: "off"}[m.Logging]))
 
 	choices := ""
 	for idx, choice := range m.AvailableChoices {
-		choices += fmt.Sprintf("%s\n", checkbox(choice.Name, idx == c))
+		choices += fmt.Sprintf("%s\n", utils.Checkbox(choice.Name, idx == c))
 	}
 
 	return fmt.Sprintf(tpl, choices)
 }
 
 // Main update function.
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// global key handling (quit)
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		k := msg.String()
@@ -480,7 +463,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // The main view, which just calls the appropriate sub-view
-func (m model) View() string {
+func (m Model) View() string {
 	var s string
 	if m.Quitting {
 		return "\n  See you later!\n\n"
@@ -490,13 +473,13 @@ func (m model) View() string {
 	} else {
 		s = chosenView(m)
 	}
-	return mainStyle.Render("\n" + s + "\n\n")
+	return utils.MainStyle.Render("\n" + s + "\n\n")
 }
 
 // Sub-update functions
 
 // Update loop for the first view where you're choosing a task.
-func updateChoices(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func updateChoices(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -512,21 +495,21 @@ func updateChoices(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			}
 		case "enter", " ":
 			m.Chosen = true
-			return m, frame()
+			return m, Frame()
 		}
 	}
 
 	return m, nil
 }
 
-func updateChosen(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func updateChosen(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	if m.Choice < 0 || m.Choice >= len(m.AvailableChoices) {
 		return m, nil
 	}
 	return m.AvailableChoices[m.Choice].UpdateFunc(msg, m)
 }
 
-func chosenView(m model) string {
+func chosenView(m Model) string {
 	if m.Choice < 0 || m.Choice >= len(m.AvailableChoices) {
 		return "Invalid choice"
 	}

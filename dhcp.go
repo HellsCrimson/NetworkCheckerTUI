@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -20,9 +21,9 @@ import (
 // The UI follows the same pattern as ip/mtu/dns: start worker on first frame,
 // stream lines into DHCPLog, and mark Loaded when done.
 
-func updateDHCP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateDHCP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		// start worker on first frame for this view
 		if !m.Loaded && m.DHCPChan == nil {
 			m.DHCPChan = make(chan string, 256)
@@ -77,7 +78,7 @@ func updateDHCP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				close(ch)
 			}(m.DHCPChan, m.DHCPTimeout)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll channel and update model
@@ -116,9 +117,9 @@ func updateDHCP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						m.DHCPInfo = trim
 					}
 					// keep streaming until closed
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -126,8 +127,8 @@ func updateDHCP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenDHCPView(m model) string {
-	header := keywordStyle.Render("DHCP check:") + " dhclient - one-shot\n\n"
+func ChosenDHCPView(m Model) string {
+	header := utils.KeywordStyle.Render("DHCP check:") + " dhclient - one-shot\n\n"
 
 	if !m.Loaded {
 		// running
@@ -135,9 +136,9 @@ func chosenDHCPView(m model) string {
 		if len(m.DHCPLog) > 0 {
 			body += strings.Join(m.DHCPLog, "\n")
 		} else {
-			body += subtleStyle.Render("waiting for dhclient output...")
+			body += utils.SubtleStyle.Render("waiting for dhclient output...")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// finished: show logs and summary
@@ -155,5 +156,5 @@ func chosenDHCPView(m model) string {
 	}
 
 	body := summary + logs
-	return header + subtleStyle.Render(body) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(body) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

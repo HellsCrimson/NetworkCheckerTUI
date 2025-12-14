@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -14,9 +15,9 @@ import (
 // Streams output into m.BandwidthLog and marks Loaded when finished.
 // Conservative: uses a timeout so it won't hang indefinitely.
 
-func updateBandwidth(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateBandwidth(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.BandwidthChan == nil {
 			m.BandwidthChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -74,7 +75,7 @@ func updateBandwidth(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.BandwidthChan)
-			return m, frame()
+			return m, Frame()
 		}
 
 		if m.BandwidthChan != nil {
@@ -92,9 +93,9 @@ func updateBandwidth(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					}
 					// keep log, and also try to capture concise summary lines
 					m.BandwidthLog = append(m.BandwidthLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -102,19 +103,19 @@ func updateBandwidth(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenBandwidthView(m model) string {
-	header := keywordStyle.Render("Bandwidth check:") + " speedtest / speedtest-cli\n\n"
+func ChosenBandwidthView(m Model) string {
+	header := utils.KeywordStyle.Render("Bandwidth check:") + " speedtest / speedtest-cli\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("running bandwidth test...")
+		body := utils.SubtleStyle.Render("running bandwidth test...")
 		if len(m.BandwidthLog) > 0 {
 			body = strings.Join(m.BandwidthLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.BandwidthLog) == 0 {
-		return header + subtleStyle.Render("No bandwidth output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No bandwidth output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// show collected output (try to surface common summary lines at top)
@@ -131,5 +132,5 @@ func chosenBandwidthView(m model) string {
 	} else {
 		body = "Raw output:\n" + strings.Join(m.BandwidthLog, "\n")
 	}
-	return header + subtleStyle.Render(body) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(body) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

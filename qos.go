@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -13,9 +14,9 @@ import (
 
 // Check QoS settings: probe `tc` for qdiscs/classes/filters and fall back to nft/iptables where sensible.
 // Streams output into m.QoSLog and marks Loaded when finished.
-func updateQoS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateQoS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.QoSChan == nil {
 			m.QoSChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -83,7 +84,7 @@ func updateQoS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.QoSChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll QoS channel
@@ -101,9 +102,9 @@ func updateQoS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.QoSLog = append(m.QoSLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -111,19 +112,19 @@ func updateQoS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenQoSView(m model) string {
-	header := keywordStyle.Render("QoS settings:") + " tc / nft / iptables mangle\n\n"
+func ChosenQoSView(m Model) string {
+	header := utils.KeywordStyle.Render("QoS settings:") + " tc / nft / iptables mangle\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("probing QoS configuration...")
+		body := utils.SubtleStyle.Render("probing QoS configuration...")
 		if len(m.QoSLog) > 0 {
 			body = strings.Join(m.QoSLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.QoSLog) == 0 {
-		return header + subtleStyle.Render("No QoS output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No QoS output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.QoSLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.QoSLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

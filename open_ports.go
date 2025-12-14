@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -12,9 +13,9 @@ import (
 
 // Check open ports: prefer `ss -lntu` then fall back to `netstat -tuln`.
 // Streams lines into a channel from a goroutine and collects them into m.OpenPortsLog.
-func updateOpenPorts(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateOpenPorts(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.OpenPortsChan == nil {
 			m.OpenPortsChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -69,7 +70,7 @@ func updateOpenPorts(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.OpenPortsChan)
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll channel
@@ -86,9 +87,9 @@ func updateOpenPorts(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.OpenPortsLog = append(m.OpenPortsLog, line)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -96,20 +97,20 @@ func updateOpenPorts(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenOpenPortsView(m model) string {
-	header := keywordStyle.Render("Open ports:") + " ss -lntu / netstat -tuln\n\n"
+func ChosenOpenPortsView(m Model) string {
+	header := utils.KeywordStyle.Render("Open ports:") + " ss -lntu / netstat -tuln\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("scanning listening sockets...")
+		body := utils.SubtleStyle.Render("scanning listening sockets...")
 		if len(m.OpenPortsLog) > 0 {
 			body = strings.Join(m.OpenPortsLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// finished: show collected open ports or message
 	if len(m.OpenPortsLog) == 0 {
-		return header + subtleStyle.Render("No listening sockets found or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No listening sockets found or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.OpenPortsLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.OpenPortsLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

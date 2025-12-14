@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -18,9 +19,9 @@ import (
 var ipLinkRe = regexp.MustCompile(`^\d+:\s*([^:]+):\s*(?:<([^>]*)>)?.*mtu\s*(\d+)`)
 var stateRe = regexp.MustCompile(`state\s+([A-Z]+)`)
 
-func updateNetworkInterfaces(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateNetworkInterfaces(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.NetIfChan == nil {
 			m.NetIfChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -83,7 +84,7 @@ func updateNetworkInterfaces(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.NetIfChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll channel
@@ -105,9 +106,9 @@ func updateNetworkInterfaces(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.NetIfLog = append(m.NetIfLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -190,19 +191,19 @@ func summarizeNetIf(lines []string) string {
 	return strings.Join(out, "\n")
 }
 
-func chosenNetworkInterfacesView(m model) string {
-	header := keywordStyle.Render("Network interfaces:") + " ip link / ip addr / ifconfig\n\n"
+func ChosenNetworkInterfacesView(m Model) string {
+	header := utils.KeywordStyle.Render("Network interfaces:") + " ip link / ip addr / ifconfig\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("querying network interfaces...")
+		body := utils.SubtleStyle.Render("querying network interfaces...")
 		if len(m.NetIfLog) > 0 {
 			body = strings.Join(m.NetIfLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.NetIfLog) == 0 {
-		return header + subtleStyle.Render("No network interface output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No network interface output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.NetIfLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.NetIfLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

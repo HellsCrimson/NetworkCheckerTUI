@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -17,9 +18,9 @@ import (
 
 var pktLossRe = regexp.MustCompile(`(?i)(\d+(?:\.\d+)?)%\s*packet loss`)
 
-func updatePacketLoss(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdatePacketLoss(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		// start worker on first frame for this view
 		if !m.Loaded && m.PacketLossChan == nil {
 			m.PacketLossChan = make(chan string, 512)
@@ -78,7 +79,7 @@ func updatePacketLoss(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				_ = cmd.Wait()
 			}(m.PacketLossChan, target, count)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll channel and update model
@@ -104,9 +105,9 @@ func updatePacketLoss(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.PacketLossLog = append(m.PacketLossLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -125,19 +126,19 @@ func extractPacketLoss(lines []string) string {
 	return ""
 }
 
-func chosenPacketLossView(m model) string {
-	header := keywordStyle.Render("Packet loss check:") + " ping\n\n"
+func ChosenPacketLossView(m Model) string {
+	header := utils.KeywordStyle.Render("Packet loss check:") + " ping\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("measuring packet loss...")
+		body := utils.SubtleStyle.Render("measuring packet loss...")
 		if len(m.PacketLossLog) > 0 {
 			body = strings.Join(m.PacketLossLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.PacketLossLog) == 0 {
-		return header + subtleStyle.Render("No packet loss output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No packet loss output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.PacketLossLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.PacketLossLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -12,9 +13,9 @@ import (
 
 // Check routing tables: runs "ip route show" (preferred) or falls back to "route -n".
 // Streams lines into a channel from a goroutine and collects them into m.RouteLog.
-func updateRouting(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateRouting(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.RouteChan == nil {
 			m.RouteChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -69,7 +70,7 @@ func updateRouting(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.RouteChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll route channel
@@ -88,9 +89,9 @@ func updateRouting(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.RouteLog = append(m.RouteLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -98,20 +99,20 @@ func updateRouting(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenRoutingView(m model) string {
-	header := keywordStyle.Render("Routing tables:") + " ip route / route -n\n\n"
+func ChosenRoutingView(m Model) string {
+	header := utils.KeywordStyle.Render("Routing tables:") + " ip route / route -n\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("querying routing table...")
+		body := utils.SubtleStyle.Render("querying routing table...")
 		if len(m.RouteLog) > 0 {
 			body = strings.Join(m.RouteLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// finished: show collected routing entries or message
 	if len(m.RouteLog) == 0 {
-		return header + subtleStyle.Render("No routing entries collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No routing entries collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.RouteLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.RouteLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

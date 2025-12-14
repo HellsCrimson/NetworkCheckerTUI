@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -15,9 +16,9 @@ import (
 // wg show, ip link for tun/wg devices, systemctl status for common VPN services,
 // pgrep for openvpn/strongswan/etc). Streams lines into m.VPNLog.
 
-func updateVPN(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateVPN(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.VPNChan == nil {
 			m.VPNChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -99,7 +100,7 @@ func updateVPN(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.VPNChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll VPN channel
@@ -118,9 +119,9 @@ func updateVPN(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.VPNLog = append(m.VPNLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -128,21 +129,21 @@ func updateVPN(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenVPNView(m model) string {
-	header := keywordStyle.Render("VPN status:") + " common checks (nmcli/wg/systemctl/pgrep)\n\n"
+func ChosenVPNView(m Model) string {
+	header := utils.KeywordStyle.Render("VPN status:") + " common checks (nmcli/wg/systemctl/pgrep)\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("probing VPN status...")
+		body := utils.SubtleStyle.Render("probing VPN status...")
 		if len(m.VPNLog) > 0 {
 			body = strings.Join(m.VPNLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.VPNLog) == 0 {
-		return header + subtleStyle.Render("No VPN activity detected or commands failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No VPN activity detected or commands failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// show collected output
-	return header + subtleStyle.Render(strings.Join(m.VPNLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.VPNLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

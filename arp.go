@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -12,9 +13,9 @@ import (
 
 // Simple ARP table check: runs "ip neigh show" (preferred) or falls back to "arp -n".
 // Streams lines into a channel from a goroutine and collects them into m.ARPLog.
-func updateARP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateARP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.ARPChan == nil {
 			m.ARPChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -69,7 +70,7 @@ func updateARP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.ARPChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll ARP channel
@@ -88,9 +89,9 @@ func updateARP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.ARPLog = append(m.ARPLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -98,20 +99,20 @@ func updateARP(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenARPView(m model) string {
-	header := keywordStyle.Render("ARP tables:") + " ip neigh / arp -n\n\n"
+func ChosenARPView(m Model) string {
+	header := utils.KeywordStyle.Render("ARP tables:") + " ip neigh / arp -n\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("querying ARP/neighbour table...")
+		body := utils.SubtleStyle.Render("querying ARP/neighbour table...")
 		if len(m.ARPLog) > 0 {
 			body = strings.Join(m.ARPLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// finished: show collected ARP entries or message
 	if len(m.ARPLog) == 0 {
-		return header + subtleStyle.Render("No ARP entries collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No ARP entries collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.ARPLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.ARPLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

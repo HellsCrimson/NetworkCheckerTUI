@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -15,9 +16,9 @@ import (
 
 // Check Wi-Fi signal: try nmcli (preferred), then iw, then iwconfig.
 // Streams lines into m.WiFiLog and, on completion, prepends a concise best-network summary.
-func updateWiFi(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateWiFi(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.WiFiChan == nil {
 			m.WiFiChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -88,7 +89,7 @@ func updateWiFi(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.WiFiChan)
-			return m, frame()
+			return m, Frame()
 		}
 
 		if m.WiFiChan != nil {
@@ -110,9 +111,9 @@ func updateWiFi(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.WiFiLog = append(m.WiFiLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -187,19 +188,19 @@ func summarizeWiFi(lines []string) string {
 	return fmt.Sprintf("Best Wi‑Fi: %s (%d%%)", best.name, best.score)
 }
 
-func chosenWiFiView(m model) string {
-	header := keywordStyle.Render("Wi‑Fi signal:") + " nmcli/iw/iwconfig\n\n"
+func ChosenWiFiView(m Model) string {
+	header := utils.KeywordStyle.Render("Wi‑Fi signal:") + " nmcli/iw/iwconfig\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("probing Wi‑Fi signal...")
+		body := utils.SubtleStyle.Render("probing Wi‑Fi signal...")
 		if len(m.WiFiLog) > 0 {
 			body = strings.Join(m.WiFiLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.WiFiLog) == 0 {
-		return header + subtleStyle.Render("No Wi‑Fi output collected or no wireless device found.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No Wi‑Fi output collected or no wireless device found.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.WiFiLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.WiFiLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

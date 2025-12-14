@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"regexp"
 	"strings"
@@ -18,9 +19,9 @@ import (
 
 var rttRegexp = regexp.MustCompile(`(?i)(?:rtt|round-trip).*= *([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) *ms`)
 
-func updateLatency(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateLatency(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.LatencyChan == nil {
 			m.LatencyChan = make(chan string, 512)
 			target := m.PingIP
@@ -76,7 +77,7 @@ func updateLatency(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.LatencyChan, target)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		if m.LatencyChan != nil {
@@ -98,9 +99,9 @@ func updateLatency(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.LatencyLog = append(m.LatencyLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -120,19 +121,19 @@ func extractAvgRTT(lines []string) string {
 	return ""
 }
 
-func chosenLatencyView(m model) string {
-	header := keywordStyle.Render("Latency check:") + " ping (5 samples)\n\n"
+func ChosenLatencyView(m Model) string {
+	header := utils.KeywordStyle.Render("Latency check:") + " ping (5 samples)\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("measuring latency...")
+		body := utils.SubtleStyle.Render("measuring latency...")
 		if len(m.LatencyLog) > 0 {
 			body = strings.Join(m.LatencyLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.LatencyLog) == 0 {
-		return header + subtleStyle.Render("No latency output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No latency output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.LatencyLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.LatencyLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

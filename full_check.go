@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"network-check/utils"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -13,7 +14,7 @@ import (
 )
 
 // --- Full network check: orchestrate ip -> mtu -> dns sequentially and show progress ---
-func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateFullNetwork(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	const (
 		stageNotStarted = 0
 		stageIP         = 1
@@ -23,7 +24,7 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	)
 
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		// bootstrap the full run on first frame
 		if m.FullStage == stageNotStarted {
 			// reset logs/counters
@@ -43,18 +44,18 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 			// start with IP pings
 			m.FullStage = stageIP
-			m.PingChan = make(chan pingResult, m.PingTotal)
-			go func(ch chan<- pingResult, ip string, total int) {
+			m.PingChan = make(chan PingResult, m.PingTotal)
+			go func(ch chan<- PingResult, ip string, total int) {
 				ctx := context.Background()
 				for i := 1; i <= total; i++ {
 					cmd := exec.CommandContext(ctx, "ping", "-c", "1", "-W", "1", ip)
 					err := cmd.Run()
-					ch <- pingResult{Index: i, Success: err == nil, Done: i == total}
+					ch <- PingResult{Index: i, Success: err == nil, Done: i == total}
 				}
 				close(ch)
 			}(m.PingChan, m.PingIP, m.PingTotal)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// handle IP stage
@@ -86,7 +87,7 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					}
 				default:
 					// nothing to read right now
-					return m, frame()
+					return m, Frame()
 				}
 				// loop back to potentially start next stage
 				if m.FullStage != stageIP {
@@ -97,8 +98,8 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 		// start MTU stage when requested
 		if m.FullStage == stageMTU && m.MTUChan == nil {
-			m.MTUChan = make(chan mtuResult, len(m.MTUTargets))
-			go func(ch chan<- mtuResult, ip string, targets []int) {
+			m.MTUChan = make(chan MtuResult, len(m.MTUTargets))
+			go func(ch chan<- MtuResult, ip string, targets []int) {
 				ctx := context.Background()
 				for i, size := range targets {
 					payload := size - 28
@@ -108,13 +109,13 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					args := []string{"-c", "1", "-M", "do", "-s", strconv.Itoa(payload), "-W", "1", ip}
 					cmd := exec.CommandContext(ctx, "ping", args...)
 					err := cmd.Run()
-					ch <- mtuResult{Size: size, Success: err == nil, Done: i == len(targets)-1}
+					ch <- MtuResult{Size: size, Success: err == nil, Done: i == len(targets)-1}
 					time.Sleep(150 * time.Millisecond)
 				}
 				close(ch)
 			}(m.MTUChan, m.PingIP, m.MTUTargets)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// handle MTU stage
@@ -142,7 +143,7 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						break
 					}
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 				if m.FullStage != stageMTU {
 					break
@@ -152,18 +153,18 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 
 		// start DNS stage when requested
 		if m.FullStage == stageDNS && m.DNSChan == nil {
-			m.DNSChan = make(chan dnsResult, len(m.DNSTargets))
-			go func(ch chan<- dnsResult, targets []string) {
+			m.DNSChan = make(chan DnsResult, len(m.DNSTargets))
+			go func(ch chan<- DnsResult, targets []string) {
 				for i, name := range targets {
 					addrs, err := net.LookupHost(name)
 					success := err == nil
-					ch <- dnsResult{Name: name, Addrs: addrs, Success: success, Done: i == len(targets)-1}
+					ch <- DnsResult{Name: name, Addrs: addrs, Success: success, Done: i == len(targets)-1}
 					time.Sleep(150 * time.Millisecond)
 				}
 				close(ch)
 			}(m.DNSChan, m.DNSTargets)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// handle DNS stage
@@ -195,7 +196,7 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						break
 					}
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 				if m.FullStage != stageDNS {
 					break
@@ -211,7 +212,7 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		return m, frame()
+		return m, Frame()
 
 	case tickMsg:
 		// nothing to do on ticks for full flow
@@ -221,8 +222,8 @@ func updateFullNetwork(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenFullNetworkView(m model) string {
-	header := keywordStyle.Render("Full network check") + "\n\n"
+func ChosenFullNetworkView(m Model) string {
+	header := utils.KeywordStyle.Render("Full network check") + "\n\n"
 
 	// status line depends on stage
 	stageText := "Starting..."
@@ -238,7 +239,7 @@ func chosenFullNetworkView(m model) string {
 	}
 
 	// show progress bar
-	bar := progressbar(m.Progress)
+	bar := utils.Progressbar(m.Progress)
 
 	// when finished, show aggregated results
 	var results string

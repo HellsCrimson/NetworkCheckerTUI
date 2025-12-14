@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -14,9 +15,9 @@ import (
 // Streams output lines into m.TraceChan and collects them into m.TraceLog.
 // Expects model to have fields: TraceChan chan string, TraceLog []string, TraceTarget string.
 
-func updateTraceroute(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateTraceroute(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		// start traceroute worker on first frame for this view
 		if !m.Loaded && m.TraceChan == nil {
 			m.TraceChan = make(chan string, 512)
@@ -76,7 +77,7 @@ func updateTraceroute(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.TraceChan, target)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll trace channel
@@ -95,9 +96,9 @@ func updateTraceroute(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.TraceLog = append(m.TraceLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -105,19 +106,19 @@ func updateTraceroute(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenTracerouteView(m model) string {
-	header := keywordStyle.Render("Traceroute:") + " traceroute / tracepath\n\n"
+func ChosenTracerouteView(m Model) string {
+	header := utils.KeywordStyle.Render("Traceroute:") + " traceroute / tracepath\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("running traceroute...")
+		body := utils.SubtleStyle.Render("running traceroute...")
 		if len(m.TraceLog) > 0 {
 			body = strings.Join(m.TraceLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.TraceLog) == 0 {
-		return header + subtleStyle.Render("No traceroute output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No traceroute output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.TraceLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.TraceLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

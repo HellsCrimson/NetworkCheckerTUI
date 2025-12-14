@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -12,9 +13,9 @@ import (
 
 // Check firewall rules: prefer nftables, fall back to iptables or ufw.
 // Streams lines into a channel from a goroutine and collects them into m.FirewallLog.
-func updateFirewall(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateFirewall(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.FirewallChan == nil {
 			m.FirewallChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -64,7 +65,7 @@ func updateFirewall(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				}
 			}(m.FirewallChan)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll firewall channel
@@ -83,9 +84,9 @@ func updateFirewall(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.FirewallLog = append(m.FirewallLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -93,20 +94,20 @@ func updateFirewall(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenFirewallView(m model) string {
-	header := keywordStyle.Render("Firewall rules:") + " nft/iptables/ufw\n\n"
+func ChosenFirewallView(m Model) string {
+	header := utils.KeywordStyle.Render("Firewall rules:") + " nft/iptables/ufw\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("querying firewall rules...")
+		body := utils.SubtleStyle.Render("querying firewall rules...")
 		if len(m.FirewallLog) > 0 {
 			body = strings.Join(m.FirewallLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	// finished: show collected firewall rules or message
 	if len(m.FirewallLog) == 0 {
-		return header + subtleStyle.Render("No firewall output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No firewall output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.FirewallLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.FirewallLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

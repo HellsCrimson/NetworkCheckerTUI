@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"network-check/utils"
 	"strings"
 	"time"
 
@@ -11,24 +12,24 @@ import (
 
 // DNS worker + view (moved out of main.go)
 
-func updateDNS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateDNS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		// start dns worker on first frame for this view
 		if !m.Loaded && m.DNSChan == nil {
-			m.DNSChan = make(chan dnsResult, len(m.DNSTargets))
-			go func(ch chan<- dnsResult, targets []string) {
+			m.DNSChan = make(chan DnsResult, len(m.DNSTargets))
+			go func(ch chan<- DnsResult, targets []string) {
 				for i, name := range targets {
 					addrs, err := net.LookupHost(name)
 					success := err == nil
-					ch <- dnsResult{Name: name, Addrs: addrs, Success: success, Done: i == len(targets)-1}
+					ch <- DnsResult{Name: name, Addrs: addrs, Success: success, Done: i == len(targets)-1}
 					// small pause so UI updates smoothly
 					time.Sleep(150 * time.Millisecond)
 				}
 				close(ch)
 			}(m.DNSChan, m.DNSTargets)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll the dns channel without blocking and update progress
@@ -60,7 +61,7 @@ func updateDNS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					}
 				default:
 					// nothing to read right now
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -71,8 +72,8 @@ func updateDNS(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenDNSView(m model) string {
-	header := keywordStyle.Render("DNS check:") + " dnsutils (resolve)\n\n"
+func ChosenDNSView(m Model) string {
+	header := utils.KeywordStyle.Render("DNS check:") + " dnsutils (resolve)\n\n"
 
 	total := len(m.DNSTargets)
 	progressLine := fmt.Sprintf("Tested: %d/%d — Successes: %d", m.DNSIndex, total, m.DNSSuccessCount)
@@ -95,7 +96,7 @@ func chosenDNSView(m model) string {
 		}
 	}
 
-	output := subtleStyle.Render(body)
+	output := utils.SubtleStyle.Render(body)
 
 	label := "Running..."
 	if m.Loaded {

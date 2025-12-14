@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"strings"
 	"time"
@@ -13,9 +14,9 @@ import (
 
 // Check NAT configuration: prefer nftables nat table, fall back to iptables nat or iptables-save.
 // Also probe ip_forward via sysctl. Streams lines into m.NATChan and collects them into m.NATLog.
-func updateNAT(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateNAT(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		if !m.Loaded && m.NATChan == nil {
 			m.NATChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -84,7 +85,7 @@ func updateNAT(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.NATChan)
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll NAT channel
@@ -102,9 +103,9 @@ func updateNAT(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.NATLog = append(m.NATLog, trim)
-					return m, frame()
+					return m, Frame()
 				default:
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -112,19 +113,19 @@ func updateNAT(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenNATView(m model) string {
-	header := keywordStyle.Render("NAT configuration:") + " nft/iptables/sysctl\n\n"
+func ChosenNATView(m Model) string {
+	header := utils.KeywordStyle.Render("NAT configuration:") + " nft/iptables/sysctl\n\n"
 
 	if !m.Loaded {
-		body := subtleStyle.Render("probing NAT configuration...")
+		body := utils.SubtleStyle.Render("probing NAT configuration...")
 		if len(m.NATLog) > 0 {
 			body = strings.Join(m.NATLog, "\n")
 		}
-		return header + body + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + body + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
 
 	if len(m.NATLog) == 0 {
-		return header + subtleStyle.Render("No NAT output collected or command failed.") + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+		return header + utils.SubtleStyle.Render("No NAT output collected or command failed.") + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 	}
-	return header + subtleStyle.Render(strings.Join(m.NATLog, "\n")) + "\n\n" + subtleStyle.Render("Completed. Press esc to quit or b to go back.")
+	return header + utils.SubtleStyle.Render(strings.Join(m.NATLog, "\n")) + "\n\n" + utils.SubtleStyle.Render("Completed. Press esc to quit or b to go back.")
 }

@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"network-check/utils"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
 
 	"github.com/charmbracelet/bubbles/table"
@@ -102,7 +105,6 @@ func startCaptureCmd(ch chan<- string) tea.Cmd {
 	return func() tea.Msg {
 		go func() {
 			// Try to open a live capture on the "any" device (works on Linux).
-			// If that fails fall back to a simple generator.
 			handle, err := pcap.OpenLive("any", 65535, true, pcap.BlockForever)
 			if err == nil {
 				defer handle.Close()
@@ -119,32 +121,124 @@ func startCaptureCmd(ch chan<- string) tea.Cmd {
 						ts = fmt.Sprintf("%d.%06d", now.Unix(), now.Nanosecond()/1000)
 					}
 
-					// Extract src/dst/proto/info leniently
+					// Extract src/dst/proto/info using gopacket layers when available
 					var proto, src, dst, info string
-					if netLayer := packet.NetworkLayer(); netLayer != nil {
-						src = netLayer.NetworkFlow().Src().String()
-						dst = netLayer.NetworkFlow().Dst().String()
+
+					// Network layer (IPv4 / IPv6)
+					if ip4Layer := packet.Layer(layers.LayerTypeIPv4); ip4Layer != nil {
+						ip4 := ip4Layer.(*layers.IPv4)
+						src = ip4.SrcIP.String()
+						dst = ip4.DstIP.String()
+						proto = ip4.Protocol.String()
+					} else if ip6Layer := packet.Layer(layers.LayerTypeIPv6); ip6Layer != nil {
+						ip6 := ip6Layer.(*layers.IPv6)
+						src = ip6.SrcIP.String()
+						dst = ip6.DstIP.String()
+						proto = ip6.NextHeader.String()
+					} else if arpLayer := packet.Layer(layers.LayerTypeARP); arpLayer != nil {
+						arp := arpLayer.(*layers.ARP)
+						src = net.HardwareAddr(arp.SourceHwAddress).String()
+						dst = net.HardwareAddr(arp.DstHwAddress).String()
+						// also include protocol addresses if present
+						if len(arp.SourceProtAddress) >= 4 {
+							src = net.IP(arp.SourceProtAddress).String()
+						}
+						if len(arp.DstProtAddress) >= 4 {
+							dst = net.IP(arp.DstProtAddress).String()
+						}
+						proto = "ARP"
 					}
-					if trans := packet.TransportLayer(); trans != nil {
-						proto = trans.LayerType().String()
-						info = trans.TransportFlow().String()
+
+					// Transport layer specifics
+					if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+						tcp := tcpLayer.(*layers.TCP)
+						// attach ports to src/dst if network addresses were found
+						if src != "" && dst != "" {
+							src = fmt.Sprintf("%s:%d", src, tcp.SrcPort)
+							dst = fmt.Sprintf("%s:%d", dst, tcp.DstPort)
+						} else {
+							src = tcp.SrcPort.String()
+							dst = tcp.DstPort.String()
+						}
+						proto = "TCP"
+						// include brief flags/payload length
+						var flags []string
+						if tcp.SYN {
+							flags = append(flags, "SYN")
+						}
+						if tcp.ACK {
+							flags = append(flags, "ACK")
+						}
+						if tcp.FIN {
+							flags = append(flags, "FIN")
+						}
+						if tcp.RST {
+							flags = append(flags, "RST")
+						}
+						if tcp.PSH {
+							flags = append(flags, "PSH")
+						}
+						if tcp.URG {
+							flags = append(flags, "URG")
+						}
+						if tcp.ECE {
+							flags = append(flags, "ECE")
+						}
+						if tcp.CWR {
+							flags = append(flags, "CWR")
+						}
+						flagsStr := "-"
+						if len(flags) > 0 {
+							flagsStr = strings.Join(flags, "|")
+						}
+						info = fmt.Sprintf("flags=%s len=%d", flagsStr, len(tcp.Payload))
+					} else if udpLayer := packet.Layer(layers.LayerTypeUDP); udpLayer != nil {
+						udp := udpLayer.(*layers.UDP)
+						if src != "" && dst != "" {
+							src = fmt.Sprintf("%s:%d", src, udp.SrcPort)
+							dst = fmt.Sprintf("%s:%d", dst, udp.DstPort)
+						} else {
+							src = udp.SrcPort.String()
+							dst = udp.DstPort.String()
+						}
+						proto = "UDP"
+						info = fmt.Sprintf("len=%d", len(udp.Payload))
+					} else if icmp4 := packet.Layer(layers.LayerTypeICMPv4); icmp4 != nil {
+						icmp := icmp4.(*layers.ICMPv4)
+						proto = "ICMPv4"
+						info = fmt.Sprintf("type=%d code=%d", icmp.TypeCode.Type(), icmp.TypeCode.Code())
+					} else if icmp6 := packet.Layer(layers.LayerTypeICMPv6); icmp6 != nil {
+						proto = "ICMPv6"
+						// keep generic info for ICMPv6
+						info = "icmpv6"
 					} else if app := packet.ApplicationLayer(); app != nil {
+						// application payload: include a short excerpt
 						proto = "APP"
 						payload := app.Payload()
 						if len(payload) > 0 {
-							info = string(payload)
-							if len(info) > 120 {
-								info = info[:120] + "…"
+							// try to show printable prefix
+							pl := string(payload)
+							if len(pl) > 200 {
+								pl = pl[:200] + "…"
 							}
+							info = pl
 						}
 					} else {
-						// best-effort proto from layers present
+						// fallback: compose proto from available layers
+						var parts []string
 						for _, l := range packet.Layers() {
-							if proto == "" {
-								proto = l.LayerType().String()
-							} else {
-								proto = proto + "/" + l.LayerType().String()
-							}
+							parts = append(parts, l.LayerType().String())
+						}
+						if len(parts) > 0 {
+							proto = strings.Join(parts, "/")
+						}
+					}
+
+					// Info fallback: if not set above, use packet.String() trimmed
+					if info == "" {
+						info = packet.String()
+						if len(info) > 200 {
+							info = info[:200] + "…"
 						}
 					}
 
@@ -160,12 +254,6 @@ func startCaptureCmd(ch chan<- string) tea.Cmd {
 					}
 					if proto == "" {
 						proto = "?"
-					}
-					if info == "" {
-						info = packet.String()
-						if len(info) > 120 {
-							info = info[:120] + "…"
-						}
 					}
 
 					// sanitize all fields before sending to the UI
@@ -292,7 +380,7 @@ func renderDetailView(r table.Row, raw string) string {
 		fmt.Fprintf(&b, "Raw packet dump:\n%s\n", raw)
 	}
 	fmt.Fprintf(&b, "\nPress b or esc to return.")
-	return subtleStyle.Render(b.String())
+	return utils.SubtleStyle.Render(b.String())
 }
 
 // parseTcpdumpLine tries to extract time, src, dst, proto and info from a tcpdump line.
@@ -396,7 +484,7 @@ var faInstance *frameModel
 // updateFrameAnalyzer forwards messages to the frame analyzer component and
 // returns an updated top-level model. If the user presses 'b' while the
 // analyzer is active, we stop the analyzer and return to the choices view.
-func updateFrameAnalyzer(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateFrameAnalyzer(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	// handle key to go back immediately here (top-level handles 'b' only when Loaded)
 	if km, ok := msg.(tea.KeyMsg); ok {
 		if km.String() == "b" && m.Chosen {
@@ -435,10 +523,10 @@ func updateFrameAnalyzer(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 }
 
 // chosenFrameAnalyzerView renders the analyzer component (or a starting message).
-func chosenFrameAnalyzerView(m model) string {
+func ChosenFrameAnalyzerView(m Model) string {
 	header := faHeaderStyle.Render("Frame analyzer") + "\n\n"
 	if faInstance == nil {
-		return header + subtleStyle.Render("Starting frame analyzer...")
+		return header + utils.SubtleStyle.Render("Starting frame analyzer...")
 	}
 	return header + faInstance.View()
 }

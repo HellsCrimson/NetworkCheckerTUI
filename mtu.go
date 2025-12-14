@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"network-check/utils"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -13,14 +14,14 @@ import (
 
 // MTU probing worker + view
 
-func updateMTU(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
+func UpdateMTU(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case frameMsg:
+	case FrameMsg:
 		// start mtu worker on first frame for this view
 		if !m.Loaded && m.MTUChan == nil {
 			// buffered channel sized to number of targets
-			m.MTUChan = make(chan mtuResult, len(m.MTUTargets))
-			go func(ch chan<- mtuResult, ip string, targets []int) {
+			m.MTUChan = make(chan MtuResult, len(m.MTUTargets))
+			go func(ch chan<- MtuResult, ip string, targets []int) {
 				ctx := context.Background()
 				for i, size := range targets {
 					// compute payload size: common ping header overhead is ~28 bytes
@@ -32,14 +33,14 @@ func updateMTU(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					args := []string{"-c", "1", "-M", "do", "-s", strconv.Itoa(payload), "-W", "1", ip}
 					cmd := exec.CommandContext(ctx, "ping", args...)
 					err := cmd.Run()
-					ch <- mtuResult{Size: size, Success: err == nil, Done: i == len(targets)-1}
+					ch <- MtuResult{Size: size, Success: err == nil, Done: i == len(targets)-1}
 					// small pause so UI updates smoothly
 					time.Sleep(150 * time.Millisecond)
 				}
 				close(ch)
 			}(m.MTUChan, m.PingIP, m.MTUTargets)
 
-			return m, frame()
+			return m, Frame()
 		}
 
 		// poll the mtu channel without blocking and update progress
@@ -69,7 +70,7 @@ func updateMTU(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 					}
 				default:
 					// nothing to read right now
-					return m, frame()
+					return m, Frame()
 				}
 			}
 		}
@@ -80,8 +81,8 @@ func updateMTU(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func chosenMTUView(m model) string {
-	header := keywordStyle.Render("MTU check:") + " mtuprobe\n\n"
+func ChosenMTUView(m Model) string {
+	header := utils.KeywordStyle.Render("MTU check:") + " mtuprobe\n\n"
 
 	total := len(m.MTUTargets)
 	progressLine := fmt.Sprintf("Tested: %d/%d — Successes: %d", m.MTUIndex, total, m.MTUSuccessCount)
@@ -104,7 +105,7 @@ func chosenMTUView(m model) string {
 		}
 	}
 
-	output := subtleStyle.Render(body)
+	output := utils.SubtleStyle.Render(body)
 
 	label := "Running..."
 	if m.Loaded {
