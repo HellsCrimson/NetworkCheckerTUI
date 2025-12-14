@@ -40,27 +40,107 @@ var (
 func main() {
 	// initialize with field names so struct changes are safe
 	initialModel := model{
-		AvailableChoices: []string{
-			"Full network check",
-			"Check IP",
-			"Check DNS",
-			"Check MTU",
-			"Frame analyzer",
-			"Check DHCP",
-			"Check ARP tables",
-			"Check routing tables",
-			"Check firewall rules",
-			"Check open ports",
-			"Check traceroute",
-			"Check bandwidth",
-			"Check latency",
-			"Check packet loss",
-			"Check VPN status",
-			"Check Wi-Fi signal",
-			"Check network interfaces",
-			"Check proxy settings",
-			"Check NAT configuration",
-			"Check QoS settings",
+		AvailableChoices: []AvailableChoice{
+			{
+				Name:       "Full network check",
+				UpdateFunc: updateFullNetwork,
+				ViewFunc:   chosenFullNetworkView,
+			},
+			{
+				Name:       "Check IP",
+				UpdateFunc: updateIPRouting,
+				ViewFunc:   chosenIPRoutingView,
+			},
+			{
+				Name:       "Check DNS",
+				UpdateFunc: updateDNS,
+				ViewFunc:   chosenDNSView,
+			},
+			{
+				Name:       "Check MTU",
+				UpdateFunc: updateMTU,
+				ViewFunc:   chosenMTUView,
+			},
+			{
+				Name:       "Frame analyzer",
+				UpdateFunc: updateFrameAnalyzer,
+				ViewFunc:   chosenFrameAnalyzerView,
+			},
+			{
+				Name:       "Check DHCP",
+				UpdateFunc: updateDHCP,
+				ViewFunc:   chosenDHCPView,
+			},
+			{
+				Name:       "Check ARP tables",
+				UpdateFunc: updateARP,
+				ViewFunc:   chosenARPView,
+			},
+			{
+				Name:       "Check routing tables",
+				UpdateFunc: updateRouting,
+				ViewFunc:   chosenRoutingView,
+			},
+			{
+				Name:       "Check firewall rules",
+				UpdateFunc: updateFirewall,
+				ViewFunc:   chosenFirewallView,
+			},
+			{
+				Name:       "Check open ports",
+				UpdateFunc: updateOpenPorts,
+				ViewFunc:   chosenOpenPortsView,
+			},
+			{
+				Name:       "Check traceroute",
+				UpdateFunc: updateTraceroute,
+				ViewFunc:   chosenTracerouteView,
+			},
+			{
+				Name:       "Check bandwidth",
+				UpdateFunc: updateBandwidth,
+				ViewFunc:   chosenBandwidthView,
+			},
+			{
+				Name:       "Check latency",
+				UpdateFunc: updateLatency,
+				ViewFunc:   chosenLatencyView,
+			},
+			{
+				Name:       "Check packet loss",
+				UpdateFunc: updatePacketLoss,
+				ViewFunc:   chosenPacketLossView,
+			},
+			{
+				Name:       "Check VPN status",
+				UpdateFunc: updateVPN,
+				ViewFunc:   chosenVPNView,
+			},
+			{
+				Name:       "Check Wi-Fi signal",
+				UpdateFunc: updateWiFi,
+				ViewFunc:   chosenWiFiView,
+			},
+			{
+				Name:       "Check network interfaces",
+				UpdateFunc: updateNetworkInterfaces,
+				ViewFunc:   chosenNetworkInterfacesView,
+			},
+			{
+				Name:       "Check proxy settings",
+				UpdateFunc: updateProxy,
+				ViewFunc:   chosenProxyView,
+			},
+			{
+				Name:       "Check NAT configuration",
+				UpdateFunc: updateNAT,
+				ViewFunc:   chosenNATView,
+			},
+			{
+				Name:       "Check QoS settings",
+				UpdateFunc: updateQoS,
+				ViewFunc:   chosenQoSView,
+			},
 		},
 		Choice:           0,
 		Chosen:           false,
@@ -183,7 +263,7 @@ func (m model) Init() tea.Cmd {
 }
 
 type model struct {
-	AvailableChoices []string
+	AvailableChoices []AvailableChoice
 	Choice           int
 	Chosen           bool
 	Ticks            int
@@ -286,6 +366,12 @@ type model struct {
 	QoSLog  []string
 }
 
+type AvailableChoice struct {
+	Name       string
+	UpdateFunc func(tea.Msg, model) (tea.Model, tea.Cmd)
+	ViewFunc   func(model) string
+}
+
 type pingResult struct {
 	Index   int
 	Success bool
@@ -317,7 +403,7 @@ func choicesView(m model) string {
 
 	choices := ""
 	for idx, choice := range m.AvailableChoices {
-		choices += fmt.Sprintf("%s\n", checkbox(choice, idx == c))
+		choices += fmt.Sprintf("%s\n", checkbox(choice.Name, idx == c))
 	}
 
 	return fmt.Sprintf(tpl, choices)
@@ -433,99 +519,16 @@ func updateChoices(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// Update loop for the second view after a choice has been made
 func updateChosen(msg tea.Msg, m model) (tea.Model, tea.Cmd) {
-	// Route to a choice-specific update handler so each choice can have
-	// completely different logic and lifecycle.
-	switch m.Choice {
-	case 0:
-		return updateFullNetwork(msg, m)
-	case 1:
-		return updateIPRouting(msg, m)
-	case 2:
-		return updateDNS(msg, m)
-	case 3:
-		return updateMTU(msg, m)
-	case 4:
-		return updateFrameAnalyzer(msg, m)
-	case 5:
-		return updateDHCP(msg, m)
-	case 6:
-		return updateARP(msg, m)
-	case 7:
-		return updateRouting(msg, m)
-	case 8:
-		return updateFirewall(msg, m)
-	case 9:
-		return updateOpenPorts(msg, m)
-	case 10:
-		return updateTraceroute(msg, m)
-	case 11:
-		return updateBandwidth(msg, m)
-	case 12:
-		return updateLatency(msg, m)
-	case 13:
-		return updatePacketLoss(msg, m)
-	case 14:
-		return updateVPN(msg, m)
-	case 15:
-		return updateWiFi(msg, m)
-	case 16:
-		return updateNetworkInterfaces(msg, m)
-	case 17:
-		return updateProxy(msg, m)
-	case 18:
-		return updateNAT(msg, m)
-	case 19:
-		return updateQoS(msg, m)
-	default:
+	if m.Choice < 0 || m.Choice >= len(m.AvailableChoices) {
 		return m, nil
 	}
+	return m.AvailableChoices[m.Choice].UpdateFunc(msg, m)
 }
 
 func chosenView(m model) string {
-	switch m.Choice {
-	case 0:
-		return chosenFullNetworkView(m)
-	case 1:
-		return chosenIPRoutingView(m)
-	case 2:
-		return chosenDNSView(m)
-	case 3:
-		return chosenMTUView(m)
-	case 4:
-		return chosenFrameAnalyzerView(m)
-	case 5:
-		return chosenDHCPView(m)
-	case 6:
-		return chosenARPView(m)
-	case 7:
-		return chosenRoutingView(m)
-	case 8:
-		return chosenFirewallView(m)
-	case 9:
-		return chosenOpenPortsView(m)
-	case 10:
-		return chosenTracerouteView(m)
-	case 11:
-		return chosenBandwidthView(m)
-	case 12:
-		return chosenLatencyView(m)
-	case 13:
-		return chosenPacketLossView(m)
-	case 14:
-		return chosenVPNView(m)
-	case 15:
-		return chosenWiFiView(m)
-	case 16:
-		return chosenNetworkInterfacesView(m)
-	case 17:
-		return chosenProxyView(m)
-	case 18:
-		return chosenNATView(m)
-	case 19:
-		return chosenQoSView(m)
-	default:
-		return "Unknown choice"
+	if m.Choice < 0 || m.Choice >= len(m.AvailableChoices) {
+		return "Invalid choice"
 	}
+	return m.AvailableChoices[m.Choice].ViewFunc(m)
 }
