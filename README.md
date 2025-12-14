@@ -27,7 +27,12 @@ A TUI for quick network diagnostics built with Bubble Tea and Lip Gloss. Each ch
 
 From the project root:
 ```bash
-go build -o network-check
+make build
+```
+
+For cross compilation:
+```bash
+make cross-build
 ```
 
 Run without building:
@@ -41,12 +46,6 @@ Launch the program:
 ```bash
 ./network-check
 ```
-
-Enable debug logging:
-```bash
-DEBUG=1 ./network-check
-```
-(creates `debug.log`)
 
 If a check needs root to be useful, run that check with sudo:
 ```bash
