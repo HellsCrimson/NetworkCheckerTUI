@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -13,9 +13,9 @@ import (
 
 // Simple ARP table check: runs "ip neigh show" (preferred) or falls back to "arp -n".
 // Streams lines into a channel from a goroutine and collects them into m.ARPLog.
-func UpdateARP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateARP(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.ARPChan == nil {
 			m.ARPChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -70,7 +70,7 @@ func UpdateARP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.ARPChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll ARP channel
@@ -89,9 +89,9 @@ func UpdateARP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.ARPLog = append(m.ARPLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -99,7 +99,7 @@ func UpdateARP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenARPView(m Model) string {
+func ChosenARPView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("ARP tables:") + " ip neigh / arp -n\n\n"
 
 	if !m.Loaded {

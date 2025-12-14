@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -16,9 +16,9 @@ import (
 
 // Check Wi-Fi signal: try nmcli (preferred), then iw, then iwconfig.
 // Streams lines into m.WiFiLog and, on completion, prepends a concise best-network summary.
-func UpdateWiFi(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateWiFi(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.WiFiChan == nil {
 			m.WiFiChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -89,7 +89,7 @@ func UpdateWiFi(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.WiFiChan)
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		if m.WiFiChan != nil {
@@ -111,9 +111,9 @@ func UpdateWiFi(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.WiFiLog = append(m.WiFiLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -188,7 +188,7 @@ func summarizeWiFi(lines []string) string {
 	return fmt.Sprintf("Best Wi‑Fi: %s (%d%%)", best.name, best.score)
 }
 
-func ChosenWiFiView(m Model) string {
+func ChosenWiFiView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Wi‑Fi signal:") + " nmcli/iw/iwconfig\n\n"
 
 	if !m.Loaded {

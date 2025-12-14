@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"fmt"
@@ -12,24 +12,24 @@ import (
 
 // DNS worker + view (moved out of main.go)
 
-func UpdateDNS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateDNS(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		// start dns worker on first frame for this view
 		if !m.Loaded && m.DNSChan == nil {
-			m.DNSChan = make(chan DnsResult, len(m.DNSTargets))
-			go func(ch chan<- DnsResult, targets []string) {
+			m.DNSChan = make(chan utils.DnsResult, len(m.DNSTargets))
+			go func(ch chan<- utils.DnsResult, targets []string) {
 				for i, name := range targets {
 					addrs, err := net.LookupHost(name)
 					success := err == nil
-					ch <- DnsResult{Name: name, Addrs: addrs, Success: success, Done: i == len(targets)-1}
+					ch <- utils.DnsResult{Name: name, Addrs: addrs, Success: success, Done: i == len(targets)-1}
 					// small pause so UI updates smoothly
 					time.Sleep(150 * time.Millisecond)
 				}
 				close(ch)
 			}(m.DNSChan, m.DNSTargets)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll the dns channel without blocking and update progress
@@ -61,18 +61,18 @@ func UpdateDNS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 					}
 				default:
 					// nothing to read right now
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
-	case tickMsg:
+	case utils.TickMsg:
 		// do nothing on ticks
 		return m, nil
 	}
 	return m, nil
 }
 
-func ChosenDNSView(m Model) string {
+func ChosenDNSView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("DNS check:") + " dnsutils (resolve)\n\n"
 
 	total := len(m.DNSTargets)

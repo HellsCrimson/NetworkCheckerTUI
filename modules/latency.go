@@ -1,5 +1,5 @@
 // filepath: /home/matthias/Documents/network-check/latency.go
-package main
+package modules
 
 import (
 	"bufio"
@@ -19,9 +19,9 @@ import (
 
 var rttRegexp = regexp.MustCompile(`(?i)(?:rtt|round-trip).*= *([\d\.]+)/([\d\.]+)/([\d\.]+)/([\d\.]+) *ms`)
 
-func UpdateLatency(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateLatency(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.LatencyChan == nil {
 			m.LatencyChan = make(chan string, 512)
 			target := m.PingIP
@@ -77,7 +77,7 @@ func UpdateLatency(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.LatencyChan, target)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		if m.LatencyChan != nil {
@@ -99,9 +99,9 @@ func UpdateLatency(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.LatencyLog = append(m.LatencyLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -121,7 +121,7 @@ func extractAvgRTT(lines []string) string {
 	return ""
 }
 
-func ChosenLatencyView(m Model) string {
+func ChosenLatencyView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Latency check:") + " ping (5 samples)\n\n"
 
 	if !m.Loaded {

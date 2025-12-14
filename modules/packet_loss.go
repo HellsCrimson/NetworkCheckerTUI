@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -18,9 +18,9 @@ import (
 
 var pktLossRe = regexp.MustCompile(`(?i)(\d+(?:\.\d+)?)%\s*packet loss`)
 
-func UpdatePacketLoss(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdatePacketLoss(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		// start worker on first frame for this view
 		if !m.Loaded && m.PacketLossChan == nil {
 			m.PacketLossChan = make(chan string, 512)
@@ -79,7 +79,7 @@ func UpdatePacketLoss(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				_ = cmd.Wait()
 			}(m.PacketLossChan, target, count)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll channel and update model
@@ -105,9 +105,9 @@ func UpdatePacketLoss(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.PacketLossLog = append(m.PacketLossLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -126,7 +126,7 @@ func extractPacketLoss(lines []string) string {
 	return ""
 }
 
-func ChosenPacketLossView(m Model) string {
+func ChosenPacketLossView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Packet loss check:") + " ping\n\n"
 
 	if !m.Loaded {

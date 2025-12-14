@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"context"
@@ -14,14 +14,14 @@ import (
 
 // MTU probing worker + view
 
-func UpdateMTU(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateMTU(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		// start mtu worker on first frame for this view
 		if !m.Loaded && m.MTUChan == nil {
 			// buffered channel sized to number of targets
-			m.MTUChan = make(chan MtuResult, len(m.MTUTargets))
-			go func(ch chan<- MtuResult, ip string, targets []int) {
+			m.MTUChan = make(chan utils.MtuResult, len(m.MTUTargets))
+			go func(ch chan<- utils.MtuResult, ip string, targets []int) {
 				ctx := context.Background()
 				for i, size := range targets {
 					// compute payload size: common ping header overhead is ~28 bytes
@@ -33,14 +33,14 @@ func UpdateMTU(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 					args := []string{"-c", "1", "-M", "do", "-s", strconv.Itoa(payload), "-W", "1", ip}
 					cmd := exec.CommandContext(ctx, "ping", args...)
 					err := cmd.Run()
-					ch <- MtuResult{Size: size, Success: err == nil, Done: i == len(targets)-1}
+					ch <- utils.MtuResult{Size: size, Success: err == nil, Done: i == len(targets)-1}
 					// small pause so UI updates smoothly
 					time.Sleep(150 * time.Millisecond)
 				}
 				close(ch)
 			}(m.MTUChan, m.PingIP, m.MTUTargets)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll the mtu channel without blocking and update progress
@@ -70,18 +70,18 @@ func UpdateMTU(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 					}
 				default:
 					// nothing to read right now
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
-	case tickMsg:
+	case utils.TickMsg:
 		// removed automatic quitting — do nothing on ticks
 		return m, nil
 	}
 	return m, nil
 }
 
-func ChosenMTUView(m Model) string {
+func ChosenMTUView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("MTU check:") + " mtuprobe\n\n"
 
 	total := len(m.MTUTargets)

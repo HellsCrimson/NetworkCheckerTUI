@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -13,9 +13,9 @@ import (
 
 // Check open ports: prefer `ss -lntu` then fall back to `netstat -tuln`.
 // Streams lines into a channel from a goroutine and collects them into m.OpenPortsLog.
-func UpdateOpenPorts(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateOpenPorts(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.OpenPortsChan == nil {
 			m.OpenPortsChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -70,7 +70,7 @@ func UpdateOpenPorts(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.OpenPortsChan)
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll channel
@@ -87,9 +87,9 @@ func UpdateOpenPorts(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.OpenPortsLog = append(m.OpenPortsLog, line)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -97,7 +97,7 @@ func UpdateOpenPorts(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenOpenPortsView(m Model) string {
+func ChosenOpenPortsView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Open ports:") + " ss -lntu / netstat -tuln\n\n"
 
 	if !m.Loaded {

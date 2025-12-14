@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -21,9 +21,9 @@ import (
 // The UI follows the same pattern as ip/mtu/dns: start worker on first frame,
 // stream lines into DHCPLog, and mark Loaded when done.
 
-func UpdateDHCP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateDHCP(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		// start worker on first frame for this view
 		if !m.Loaded && m.DHCPChan == nil {
 			m.DHCPChan = make(chan string, 256)
@@ -78,7 +78,7 @@ func UpdateDHCP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				close(ch)
 			}(m.DHCPChan, m.DHCPTimeout)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll channel and update model
@@ -117,9 +117,9 @@ func UpdateDHCP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						m.DHCPInfo = trim
 					}
 					// keep streaming until closed
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -127,7 +127,7 @@ func UpdateDHCP(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenDHCPView(m Model) string {
+func ChosenDHCPView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("DHCP check:") + " dhclient - one-shot\n\n"
 
 	if !m.Loaded {

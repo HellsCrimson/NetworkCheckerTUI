@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -14,9 +14,9 @@ import (
 
 // Check QoS settings: probe `tc` for qdiscs/classes/filters and fall back to nft/iptables where sensible.
 // Streams output into m.QoSLog and marks Loaded when finished.
-func UpdateQoS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateQoS(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.QoSChan == nil {
 			m.QoSChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -84,7 +84,7 @@ func UpdateQoS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.QoSChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll QoS channel
@@ -102,9 +102,9 @@ func UpdateQoS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.QoSLog = append(m.QoSLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -112,7 +112,7 @@ func UpdateQoS(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenQoSView(m Model) string {
+func ChosenQoSView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("QoS settings:") + " tc / nft / iptables mangle\n\n"
 
 	if !m.Loaded {

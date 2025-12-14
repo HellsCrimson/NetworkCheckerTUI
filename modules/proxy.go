@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -15,9 +15,9 @@ import (
 
 // Check proxy settings: gather env vars, git proxy, GNOME proxy (gsettings) and /etc/environment.
 // Streams lines into m.ProxyLog and prepends a short summary on completion.
-func UpdateProxy(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateProxy(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.ProxyChan == nil {
 			m.ProxyChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -85,7 +85,7 @@ func UpdateProxy(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.ProxyChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll proxy channel
@@ -107,9 +107,9 @@ func UpdateProxy(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.ProxyLog = append(m.ProxyLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -129,7 +129,7 @@ func summarizeProxy(lines []string) string {
 	return ""
 }
 
-func ChosenProxyView(m Model) string {
+func ChosenProxyView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Proxy settings:") + " environment / git / desktop\n\n"
 
 	if !m.Loaded {

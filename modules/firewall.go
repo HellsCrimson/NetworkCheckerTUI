@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -13,9 +13,9 @@ import (
 
 // Check firewall rules: prefer nftables, fall back to iptables or ufw.
 // Streams lines into a channel from a goroutine and collects them into m.FirewallLog.
-func UpdateFirewall(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateFirewall(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.FirewallChan == nil {
 			m.FirewallChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -65,7 +65,7 @@ func UpdateFirewall(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.FirewallChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll firewall channel
@@ -84,9 +84,9 @@ func UpdateFirewall(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.FirewallLog = append(m.FirewallLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -94,7 +94,7 @@ func UpdateFirewall(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenFirewallView(m Model) string {
+func ChosenFirewallView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Firewall rules:") + " nft/iptables/ufw\n\n"
 
 	if !m.Loaded {

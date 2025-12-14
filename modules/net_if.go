@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -19,9 +19,9 @@ import (
 var ipLinkRe = regexp.MustCompile(`^\d+:\s*([^:]+):\s*(?:<([^>]*)>)?.*mtu\s*(\d+)`)
 var stateRe = regexp.MustCompile(`state\s+([A-Z]+)`)
 
-func UpdateNetworkInterfaces(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateNetworkInterfaces(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.NetIfChan == nil {
 			m.NetIfChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -84,7 +84,7 @@ func UpdateNetworkInterfaces(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.NetIfChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll channel
@@ -106,9 +106,9 @@ func UpdateNetworkInterfaces(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.NetIfLog = append(m.NetIfLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -191,7 +191,7 @@ func summarizeNetIf(lines []string) string {
 	return strings.Join(out, "\n")
 }
 
-func ChosenNetworkInterfacesView(m Model) string {
+func ChosenNetworkInterfacesView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Network interfaces:") + " ip link / ip addr / ifconfig\n\n"
 
 	if !m.Loaded {

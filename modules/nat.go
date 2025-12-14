@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -14,9 +14,9 @@ import (
 
 // Check NAT configuration: prefer nftables nat table, fall back to iptables nat or iptables-save.
 // Also probe ip_forward via sysctl. Streams lines into m.NATChan and collects them into m.NATLog.
-func UpdateNAT(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateNAT(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.NATChan == nil {
 			m.NATChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -85,7 +85,7 @@ func UpdateNAT(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.NATChan)
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll NAT channel
@@ -103,9 +103,9 @@ func UpdateNAT(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.NATLog = append(m.NATLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -113,7 +113,7 @@ func UpdateNAT(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenNATView(m Model) string {
+func ChosenNATView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("NAT configuration:") + " nft/iptables/sysctl\n\n"
 
 	if !m.Loaded {

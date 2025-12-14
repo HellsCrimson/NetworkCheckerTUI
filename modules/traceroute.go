@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -15,9 +15,9 @@ import (
 // Streams output lines into m.TraceChan and collects them into m.TraceLog.
 // Expects model to have fields: TraceChan chan string, TraceLog []string, TraceTarget string.
 
-func UpdateTraceroute(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateTraceroute(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		// start traceroute worker on first frame for this view
 		if !m.Loaded && m.TraceChan == nil {
 			m.TraceChan = make(chan string, 512)
@@ -77,7 +77,7 @@ func UpdateTraceroute(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.TraceChan, target)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll trace channel
@@ -96,9 +96,9 @@ func UpdateTraceroute(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.TraceLog = append(m.TraceLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -106,7 +106,7 @@ func UpdateTraceroute(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenTracerouteView(m Model) string {
+func ChosenTracerouteView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Traceroute:") + " traceroute / tracepath\n\n"
 
 	if !m.Loaded {

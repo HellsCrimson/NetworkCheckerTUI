@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -13,9 +13,9 @@ import (
 
 // Check routing tables: runs "ip route show" (preferred) or falls back to "route -n".
 // Streams lines into a channel from a goroutine and collects them into m.RouteLog.
-func UpdateRouting(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateRouting(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.RouteChan == nil {
 			m.RouteChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -70,7 +70,7 @@ func UpdateRouting(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.RouteChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll route channel
@@ -89,9 +89,9 @@ func UpdateRouting(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.RouteLog = append(m.RouteLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -99,7 +99,7 @@ func UpdateRouting(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenRoutingView(m Model) string {
+func ChosenRoutingView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Routing tables:") + " ip route / route -n\n\n"
 
 	if !m.Loaded {

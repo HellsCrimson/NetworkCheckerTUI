@@ -3,9 +3,12 @@ package utils
 import (
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/lucasb-eyer/go-colorful"
 )
@@ -28,6 +31,27 @@ var (
 
 	Ramp = MakeRampStyles("#B14FFF", "#00FFA3", ProgressBarWidth)
 )
+
+var (
+	LoggingFile *os.File
+)
+
+type (
+	TickMsg  struct{}
+	FrameMsg struct{}
+)
+
+func Tick() tea.Cmd {
+	return tea.Tick(time.Second, func(time.Time) tea.Msg {
+		return TickMsg{}
+	})
+}
+
+func Frame() tea.Cmd {
+	return tea.Tick(time.Second/60, func(time.Time) tea.Msg {
+		return FrameMsg{}
+	})
+}
 
 // Generate a blend of colors.
 func MakeRampStyles(colorA, colorB string, steps float64) (s []lipgloss.Style) {

@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"fmt"
@@ -273,7 +273,7 @@ func startCaptureCmd(ch chan<- string) tea.Cmd {
 				close(ch)
 				return
 			} else {
-				loggingFile.WriteString(fmt.Sprintf("tcpdump capture failed: %v\n", err))
+				utils.LoggingFile.WriteString(fmt.Sprintf("tcpdump capture failed: %v\n", err))
 			}
 		}()
 		return nil
@@ -484,7 +484,7 @@ var faInstance *frameModel
 // updateFrameAnalyzer forwards messages to the frame analyzer component and
 // returns an updated top-level model. If the user presses 'b' while the
 // analyzer is active, we stop the analyzer and return to the choices view.
-func UpdateFrameAnalyzer(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateFrameAnalyzer(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	// handle key to go back immediately here (top-level handles 'b' only when Loaded)
 	if km, ok := msg.(tea.KeyMsg); ok {
 		if km.String() == "b" && m.Chosen {
@@ -523,7 +523,7 @@ func UpdateFrameAnalyzer(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 }
 
 // chosenFrameAnalyzerView renders the analyzer component (or a starting message).
-func ChosenFrameAnalyzerView(m Model) string {
+func ChosenFrameAnalyzerView(m utils.Model) string {
 	header := faHeaderStyle.Render("Frame analyzer") + "\n\n"
 	if faInstance == nil {
 		return header + utils.SubtleStyle.Render("Starting frame analyzer...")
@@ -546,7 +546,7 @@ func getProtoFromInfo(info string) string {
 	case strings.Contains(info, "FLAGS"):
 		return "TCP"
 	default:
-		loggingFile.WriteString(fmt.Sprintf("Could not determine protocol from info: %s\n", info))
+		utils.LoggingFile.WriteString(fmt.Sprintf("Could not determine protocol from info: %s\n", info))
 		return "?"
 	}
 }

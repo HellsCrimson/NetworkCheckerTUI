@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -16,9 +16,9 @@ import (
 // wg show, ip link for tun/wg devices, systemctl status for common VPN services,
 // pgrep for openvpn/strongswan/etc). Streams lines into m.VPNLog.
 
-func UpdateVPN(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateVPN(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.VPNChan == nil {
 			m.VPNChan = make(chan string, 256)
 			go func(ch chan<- string) {
@@ -100,7 +100,7 @@ func UpdateVPN(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				}
 			}(m.VPNChan)
 
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		// poll VPN channel
@@ -119,9 +119,9 @@ func UpdateVPN(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 						continue
 					}
 					m.VPNLog = append(m.VPNLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -129,7 +129,7 @@ func UpdateVPN(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenVPNView(m Model) string {
+func ChosenVPNView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("VPN status:") + " common checks (nmcli/wg/systemctl/pgrep)\n\n"
 
 	if !m.Loaded {

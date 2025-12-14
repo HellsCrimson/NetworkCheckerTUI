@@ -1,4 +1,4 @@
-package main
+package modules
 
 import (
 	"bufio"
@@ -15,9 +15,9 @@ import (
 // Streams output into m.BandwidthLog and marks Loaded when finished.
 // Conservative: uses a timeout so it won't hang indefinitely.
 
-func UpdateBandwidth(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
+func UpdateBandwidth(msg tea.Msg, m utils.Model) (tea.Model, tea.Cmd) {
 	switch msg.(type) {
-	case FrameMsg:
+	case utils.FrameMsg:
 		if !m.Loaded && m.BandwidthChan == nil {
 			m.BandwidthChan = make(chan string, 512)
 			go func(ch chan<- string) {
@@ -75,7 +75,7 @@ func UpdateBandwidth(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 				default:
 				}
 			}(m.BandwidthChan)
-			return m, Frame()
+			return m, utils.Frame()
 		}
 
 		if m.BandwidthChan != nil {
@@ -93,9 +93,9 @@ func UpdateBandwidth(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 					}
 					// keep log, and also try to capture concise summary lines
 					m.BandwidthLog = append(m.BandwidthLog, trim)
-					return m, Frame()
+					return m, utils.Frame()
 				default:
-					return m, Frame()
+					return m, utils.Frame()
 				}
 			}
 		}
@@ -103,7 +103,7 @@ func UpdateBandwidth(msg tea.Msg, m Model) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func ChosenBandwidthView(m Model) string {
+func ChosenBandwidthView(m utils.Model) string {
 	header := utils.KeywordStyle.Render("Bandwidth check:") + " speedtest / speedtest-cli\n\n"
 
 	if !m.Loaded {
